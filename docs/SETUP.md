@@ -160,7 +160,7 @@ Other commands:
 | `npm run build` then `npm run preview` | Runs the real "finished" app at the same address. Needed to test offline mode, installing, and push reminders (these only work in the built app). |
 | `npm run record -- 30` | Records 30 minutes of live buses into `demo/recording.json` (what `?demo` replays). `npm run record -- 5 test` saves to `demo/recording-test.json` instead. |
 | `npm run places -- <id>` | Looks up the location of a place in `server/places.json` (uses your server key). |
-| `npm run icons` / `npm run cav` / `npm run qr` | Redraws the app icons / Cav mode faces / QR codes from the scripts in `scripts/`. |
+| `npm run icons` / `npm run cav` / `npm run qr` | Redraws the app icons / replaces the Cavman faces in Cav mode with original bus-face art / QR codes, from the scripts in `scripts/`. |
 
 ---
 

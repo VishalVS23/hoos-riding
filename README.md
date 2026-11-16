@@ -4,7 +4,7 @@
 
 **Use it:** https://hoomaps.onrender.com. Open it on your phone and choose *Add to Home Screen* (iPhone: Share → Add to Home Screen). No App Store, no account.
 
-> **Unofficial student project.** Not affiliated with, endorsed by or supported by the University of Virginia, UVA Parking & Transportation, Charlottesville Area Transit, or TransLoc / Ride Systems. Bus data comes from the public UVA tracker and may be wrong or missing. Non-commercial.
+> **Unofficial student project.** Not affiliated with, endorsed by or supported by the University of Virginia, UVA Parking & Transportation, Charlottesville Area Transit, or TransLoc / Ride Systems. Bus data comes from the public UVA tracker and may be wrong or missing. Non-commercial. Cavman and other UVA marks belong to the University of Virginia; they appear only in the optional fun Cav mode and will be removed on request.
 
 ## Features
 
@@ -17,7 +17,7 @@
 - **Rider reports** (packed, broke down, detour…) checked against live data, with "Still there?" confirmations; reports expire.
 - **Alerts:** bunched buses and buses parked for a while (layover / driver break).
 - **Share my ETA:** a temporary link that follows your bus to your stop.
-- Favorites, live location dot, dark mode, demo mode (`?demo` replays a recording you make with `npm run record`; none is included) and Cav mode (cartoon bus faces).
+- Favorites, live location dot, dark mode, demo mode (`?demo` replays a recording you make with `npm run record`; none is included) and Cav mode (buses become Cavman faces).
 
 ## Run it yourself
 
@@ -59,7 +59,7 @@ npm run dev              # opens the app at http://localhost:5173
 | `npm run build` then `npm run preview` | Test the real built app (service worker, push) |
 | `npm run record -- 30` | Record 30 min of live buses to `demo/recording.json` for `?demo` |
 | `npm run places` | Look up locations for new entries in `server/places.json` (uses Google) |
-| `npm run icons` / `npm run cav` / `npm run qr` | Redraw the app icons / Cav mode faces / QR codes |
+| `npm run icons` / `npm run cav` / `npm run qr` | Redraw the app icons / swap Cav mode to original bus-face art (replaces Cavman) / QR codes |
 
 ## How it works
 

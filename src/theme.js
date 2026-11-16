@@ -43,7 +43,7 @@ export function initThemeToggle() {
 }
 
 // ---------- Cav mode (just for fun) ----------
-// Buses become cartoon bus faces (original art, scripts/make-cav.js) inside a ring in the route's color (styles: body.cav in style.css).
+// Buses become Cavman faces (public/cav; original fallback art: npm run cav) inside a ring in the route's color (styles: body.cav in style.css).
 // Facing left/right = the way the bus is driving; sleeping = stopped; angry ⏰ = delayed.
 // Remembered on this device. No reload needed.
 
