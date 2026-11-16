@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Live UVA buses on a map. Search UVA places by nickname." />
+    <meta name="theme-color" content="#232d4b" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Light or dark: set before anything draws, so there's no white flash (see src/theme.js) -->
+    <script>
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('hoos-riding.theme'); } catch (e) {}
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+        if (t === 'dark') document.querySelector('meta[name="theme-color"]').content = '#10172a';
+      })();
+    </script>
+    <title>HooMaps</title>
+
+    <!-- Start connecting to Google's map servers right away (faster start on phones) -->
+    <link rel="preconnect" href="https://maps.googleapis.com" />
+    <link rel="preconnect" href="https://maps.gstatic.com" crossorigin />
+
+    <!-- Installable app (PWA) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="HooMaps" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="map" role="application" aria-label="Map of UVA buses"></div>
+
+    <h1 class="visually-hidden">HooMaps</h1>
+
+    <!-- Search bar: type a place, pick a suggestion, see the closest bus stops -->
+    <form id="search" class="search" role="search" autocomplete="off">
+      <img class="search-brand" src="/icons/icon.svg" alt="" width="30" height="30" />
+      <input
+        id="search-input"
+        type="search"
+        placeholder="Where to? Try O-Hill"
+        aria-label="Search for a place"
+        enterkeyhint="search"
+        spellcheck="false"
+      />
+      <button id="search-clear" class="search-clear" type="button" aria-label="Clear search" hidden>✕</button>
+    </form>
+    <ul id="suggestions" class="suggestions" role="listbox" aria-label="Search suggestions" hidden></ul>
+
+    <nav id="route-filter" class="route-filter" aria-label="Show one route"></nav>
+
+    <button id="theme-toggle" class="theme-toggle" type="button" hidden></button>
+    <!-- Cav mode (just for fun): buses become cartoon bus faces, ringed in their route's color -->
+    <button id="cav-toggle" class="theme-toggle cav-toggle" type="button" aria-label="Cav mode" aria-pressed="false" hidden>
+      <img src="/cav/front.png" alt="" width="30" height="30" />
+    </button>
+
+    <!-- Where am I? Live blue dot (your location stays on your phone) -->
+    <button id="locate-btn" class="theme-toggle locate-btn" type="button" aria-label="Show my location" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+
+    <section id="place-card" class="place-card" aria-label="Selected place" hidden></section>
+
+    <!-- Share my ETA: what a friend sees when they open your link (src/eta.js) -->
+    <section id="eta-card" class="place-card eta-card" aria-label="Shared bus ETA" hidden></section>
+
+    <!-- Favorites: your saved stops (live times) and places (one-tap trips) -->
+    <section id="home-panel" class="home-panel" aria-label="Favorites"></section>
+
+    <div id="status" class="status" role="status" aria-live="polite">Loading buses…</div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

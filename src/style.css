@@ -1,0 +1,1905 @@
+/* ---------- Colors (light + dark) ----------
+   Every color in the app comes from this list, so dark mode is just a second set.
+   index.html picks the theme (data-theme on <html>) before anything draws; see src/theme.js. */
+:root {
+  --uva-navy: #232d4b;
+  --uva-orange: #e57200;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light; /* tells the browser (and Google's popups) which mode we're in */
+
+  --surface: #ffffff; /* cards, panels, buttons */
+  --surface-2: #f1f3f7; /* close buttons, soft backgrounds */
+  --text: #232d4b;
+  --muted: #5b6475; /* 5.9:1 on white */
+  --times: #3d4657;
+  --border: #e3e6ec;
+  --border-strong: #d9dde5;
+  --hover: #fdf1e6;
+  --accent: #e57200; /* borders, pins: UVA orange */
+  --accent-ink: #b35900; /* orange TEXT: UVA orange is too light for small text on white (3.1:1) */
+  --error-text: #b3261e; /* form errors */
+  --accent-fill: #b35900; /* orange badges with white text (4.8:1) */
+  --accent-soft: #fffaf5;
+  --pressed-bg: #232d4b;
+  --pressed-text: #ffffff;
+  --banner-bg: #232d4b;
+  --banner-text: #ffffff;
+  --shadow: rgb(0 0 0 / 0.3);
+  --stop-fill: #ffffff;
+  --stop-ring: #232d4b;
+  --verdict-bus-bg: #fff1e6;
+  --verdict-bus-text: #8a3b00;
+  --verdict-bus-border: #f6c89f;
+  --verdict-walk-bg: #e9f5ec;
+  --verdict-walk-text: #1d5a2c;
+  --verdict-walk-border: #b8dfc2;
+  --danger-bg: #fdecec;
+  --danger: #8a1c1c;
+  --warning-bg: #8a1c1c;
+  --free-bg: #e6f4ea;
+  --free: #137333;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --surface: #1b2236;
+  --surface-2: #273049;
+  --text: #eef1f7;
+  --muted: #a9b1c3;
+  --times: #c9cfdb;
+  --border: #323c58;
+  --border-strong: #3f4a69;
+  --hover: #2c3550;
+  --accent: #f28c28;
+  --accent-ink: #f5a352;
+  --error-text: #ff8a80;
+  --accent-fill: #b35900;
+  --accent-soft: #2a2620;
+  --pressed-bg: #f28c28;
+  --pressed-text: #161c2e;
+  --banner-bg: #0f1424;
+  --banner-text: #ffffff;
+  --shadow: rgb(0 0 0 / 0.55);
+  --stop-fill: #ffffff;
+  --stop-ring: #0f1424;
+  --verdict-bus-bg: #3a2a17;
+  --verdict-bus-text: #ffc58a;
+  --verdict-bus-border: #6b4a22;
+  --verdict-walk-bg: #17331f;
+  --verdict-walk-text: #a3e3b5;
+  --verdict-walk-border: #2c5a3a;
+  --danger-bg: #3d1f24;
+  --danger: #ff9b9b;
+  --warning-bg: #9b2a2a;
+  --free-bg: #17331f;
+  --free: #8fdca5;
+}
+
+/* Keyboard users can see where they are (mouse/finger taps don't show it). */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--uva-navy);
+}
+
+/* Google Maps sets its own "position" on this box, so we size it with height
+   instead of position: fixed (which Google overrides, collapsing the map to 0px). */
+#map {
+  width: 100%;
+  height: 100vh; /* fallback for older browsers */
+  height: 100dvh; /* full screen on phones, even when the browser bar shows/hides */
+}
+
+/* Small floating label on top of the map */
+.status {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--uva-navy);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--shadow);
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.status {
+  /* Sits just above the favorites panel (its height is measured in favorites.js) */
+  bottom: calc(env(safe-area-inset-bottom) + 44px + var(--home-panel-h, 0px));
+  font-size: 14px;
+}
+
+.status.warning {
+  background: var(--warning-bg);
+}
+
+/* Shown next to the name when replaying recorded data (?demo) */
+.demo-badge {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-fill);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- iPhone "Add to Home Screen" tip ---------- */
+
+.install-tip {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(env(safe-area-inset-bottom) + 40px); /* leave Google's logo visible (required) */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px 12px 12px;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 4px 16px var(--shadow);
+  z-index: 2;
+}
+
+.install-tip img {
+  border-radius: 10px;
+  flex: none;
+}
+
+.install-tip p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.share-icon svg {
+  vertical-align: -3px;
+  color: #007aff; /* iOS blue, so it matches the real button */
+}
+
+.install-tip button {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Lift the status pill above the tip while the tip is showing */
+body.has-install-tip .status {
+  bottom: calc(env(safe-area-inset-bottom) + 124px);
+}
+
+/* ---------- Bus markers ---------- */
+
+.bus {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--route-color, #777);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  display: grid;
+  place-items: center;
+  transform: translateY(50%); /* center the circle on the bus's exact location */
+}
+
+/* Arrow showing which way the bus is heading */
+.bus-arrow {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 12px solid var(--arrow-color, #fff);
+  transition: transform 0.6s ease;
+}
+
+/* ---------- Route filter buttons ---------- */
+
+.route-filter {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 68px);
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 6px;
+  overflow-x: auto; /* swipe sideways if the buttons don't fit */
+  scrollbar-width: none;
+  z-index: 1;
+}
+
+@media (min-width: 900px) {
+  .route-filter { justify-content: center; }
+}
+
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px; /* big enough to tap (Apple's guideline) */
+  padding: 0 14px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 1px 4px var(--shadow);
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--pressed-bg);
+  color: var(--pressed-text);
+  border-color: var(--accent);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+  border: 1px solid rgb(0 0 0 / 0.2);
+}
+
+/* ---------- Stops ---------- */
+
+.stop {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--stop-fill);
+  border: 3px solid var(--stop-ring);
+  transform: translateY(50%); /* center the dot on the stop's location */
+  cursor: pointer;
+}
+
+/* Bigger invisible tap area around the small dot, for fingers */
+.stop::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+}
+
+.stop-popup {
+  font-family: inherit;
+  color: var(--text);
+  width: min(290px, 74vw); /* fixed, so rows that load later still fit */
+}
+
+.stop-popup h2 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.arrival {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 5px 0;
+  font-size: 14px;
+}
+
+.arrival + .arrival {
+  border-top: 1px solid var(--border);
+}
+
+.arrival-route {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.arrival-times {
+  margin-left: auto;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Notes under arrival times / in bus popups: bunched buses, parked buses */
+.live-note {
+  flex-basis: 100%;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--verdict-bus-text);
+}
+
+/* Stopped bus: a dot instead of an arrow */
+.bus.stopped .bus-arrow {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 50%;
+  background: var(--arrow-color, #fff);
+}
+
+/* ---------- Search bar ---------- */
+
+/* Hidden on screen but still read out by screen readers */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.search {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: 16px;
+  right: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 6px 0 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 2px solid var(--pressed-bg);
+  box-shadow: 0 2px 10px var(--shadow);
+  z-index: 3;
+}
+
+.search:focus-within {
+  border-color: var(--accent);
+}
+
+.search-brand {
+  flex: none;
+  border-radius: 8px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* 16px or more stops iPhones from zooming in when you tap */
+}
+
+.search input::placeholder {
+  color: var(--muted);
+}
+
+/* Use our own clear button, not the browser's */
+.search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.search-clear {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.search .demo-badge {
+  flex: none;
+  margin: 0;
+  color: #fff;
+}
+
+.suggestions {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 66px);
+  left: 16px;
+  right: 16px;
+  max-width: 560px;
+  max-height: 60vh;
+  margin: 0 auto;
+  padding: 6px 0;
+  overflow-y: auto;
+  list-style: none;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 4px 16px var(--shadow);
+  z-index: 3;
+}
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px; /* big enough to tap */
+  padding: 8px 16px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.suggestion + .suggestion {
+  border-top: 1px solid var(--border);
+}
+
+.suggestion:hover,
+.suggestion[aria-selected='true'] {
+  background: var(--hover);
+}
+
+.suggestion-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.suggestion-name {
+  font-weight: 600;
+}
+
+.suggestion-detail {
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge,
+.badge-uva {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-fill);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.suggestion-message {
+  padding: 12px 16px;
+  color: var(--muted);
+}
+
+/* ---------- Destination pin ---------- */
+
+.place-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--accent);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
+  transform: rotate(-45deg);
+  margin-bottom: 6px;
+}
+
+/* ---------- Place card (bottom) ---------- */
+
+.place-card {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 36px); /* leave Google's logo visible (required) */
+  max-width: 560px;
+  max-height: 45vh;
+  margin: 0 auto;
+  padding: 16px 16px 12px;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 4px 20px var(--shadow);
+  border-top: 4px solid var(--accent);
+  z-index: 3;
+}
+
+/* Title + close button stay at the top while the card scrolls */
+.card-head {
+  position: sticky;
+  top: -16px; /* the card's top padding */
+  margin: -16px -16px 0;
+  padding: 14px 16px 4px;
+  min-height: 52px;
+  background: var(--surface);
+  z-index: 1;
+}
+
+.place-card h2 {
+  margin: 0 48px 2px 0;
+  font-size: 18px;
+}
+
+.card-address {
+  margin: 0 40px 10px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.card-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+#place-card h2 {
+  margin-right: 104px; /* room for the ▾ and ✕ buttons */
+}
+
+.card-min {
+  position: absolute;
+  top: 8px;
+  right: 58px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Shrunk trip card: just the title + one line ("🚌 Gold Line · arrive 3:59 PM"). Tap to grow. */
+.card-summary {
+  display: none;
+  margin: 0 104px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-card.minimized {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.place-card.minimized > :not(.card-head) {
+  display: none;
+}
+
+.place-card.minimized .card-head {
+  position: static;
+  padding-bottom: 12px;
+  cursor: pointer;
+}
+
+.place-card.minimized .card-summary {
+  display: block;
+}
+
+.card-body {
+  font-size: 15px;
+}
+
+.card-body h3 {
+  margin: 4px 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.card-from {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 40px 8px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.link-button {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--accent-ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-note {
+  margin: 6px 0;
+  color: var(--muted);
+}
+
+.start-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 2px solid var(--pressed-bg);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* stops iPhones zooming in */
+  outline: none;
+}
+
+.start-input:focus {
+  border-color: var(--accent);
+}
+
+/* Suggestions inside the card (for "Starting from") */
+.suggestions.inline {
+  position: static;
+  max-height: 30vh;
+  margin: 6px 0 0;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+/* One trip option (bus or walk) */
+.trip-option {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-option.fastest {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.fastest-tag {
+  display: inline-block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.option-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option-icon {
+  width: 12px;
+  text-align: center;
+}
+
+.option-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.option-arrive {
+  margin-left: auto;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.option-steps {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.option-where {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Badges inside trip options */
+.option-top .badge {
+  padding: 1px 6px;
+  font-size: 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.badge-cat {
+  background: var(--uva-navy);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25); /* still visible on the dark card */
+}
+
+.badge-free {
+  background: var(--free-bg);
+  color: var(--free);
+}
+
+.cat-lines {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.cat-line {
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Long CAT names ("7 Downtown") shouldn't push the arrival time off the card */
+.option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* You-are-here dot and typed starting point */
+.you-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #1a73e8;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgb(26 115 232 / 0.25);
+  transform: translateY(50%);
+}
+
+.start-pin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--uva-navy);
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  transform: translateY(50%);
+}
+
+/* The card replaces the status pill and the install tip while it's open */
+body.has-place-card .status,
+body.has-place-card .install-tip {
+  display: none;
+}
+
+/* ---------- CAT stops (square, so they don't look like UVA stops) ---------- */
+
+.cat-stop {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  border: 4px solid var(--uva-navy);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.4);
+  transform: translateY(50%);
+  cursor: pointer;
+}
+
+.popup-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-ink);
+  margin-bottom: 2px;
+}
+
+.popup-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ---------- Favorites panel (bottom, when not searching) ---------- */
+
+.home-panel {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 36px); /* leave Google's logo visible (required) */
+  max-width: 560px;
+  max-height: 40vh;
+  margin: 0 auto;
+  padding: 6px 14px 10px;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 4px 20px var(--shadow);
+  border-top: 4px solid var(--pressed-bg);
+  z-index: 2;
+}
+
+.home-panel.collapsed {
+  left: auto;
+  right: 12px;
+  max-width: none;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border-top-width: 0;
+  margin: 0;
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-toggle {
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.home-title {
+  margin: 6px 0 2px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.fav-stop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.fav-stop-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fav-stop-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.fav-stop-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--times);
+}
+
+.fav-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.place-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+
+.place-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.place-chip {
+  box-shadow: none;
+  border: 1px solid var(--border-strong);
+}
+
+.fav-remove {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* ☆ Save stop / ☆ Save place */
+.star-button {
+  min-height: 40px;
+  margin: 6px 0 0;
+  padding: 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--accent-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.star-button[aria-pressed='true'] {
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: #fff;
+}
+
+.place-card .star-button {
+  margin: 0 0 8px;
+}
+
+/* The iPhone install tip and the favorites panel share the bottom: tip wins */
+body.has-install-tip .home-panel {
+  display: none;
+}
+
+/* ---------- "When: Leave now | Arrive by" ---------- */
+
+.when-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.seg-button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seg-button[aria-pressed='true'] {
+  background: var(--pressed-bg);
+  border-color: var(--pressed-bg);
+  color: var(--pressed-text);
+}
+
+.when-time {
+  min-height: 44px;
+  padding: 0 8px;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* stops iPhones zooming in */
+}
+
+.leave-banner {
+  margin: 4px 0 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--banner-bg);
+  color: var(--banner-text);
+  font-weight: 700;
+}
+
+.verdict {
+  margin: 4px 0 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.verdict-bus {
+  background: var(--verdict-bus-bg);
+  color: var(--verdict-bus-text);
+  border: 1px solid var(--verdict-bus-border);
+}
+
+.verdict-walk {
+  background: var(--verdict-walk-bg);
+  color: var(--verdict-walk-text);
+  border: 1px solid var(--verdict-walk-border);
+}
+
+.leave-banner.late {
+  background: var(--warning-bg);
+}
+
+/* ---------- Light / dark button (top right, under the route buttons) ---------- */
+
+.theme-toggle {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 124px);
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 4px var(--shadow);
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* ---------- Google's popup (stop arrival times) in dark mode ---------- */
+
+:root[data-theme='dark'] .gm-style .gm-style-iw,
+:root[data-theme='dark'] .gm-style .gm-style-iw-c,
+:root[data-theme='dark'] .gm-style .gm-style-iw-d,
+:root[data-theme='dark'] .gm-style .gm-style-iw-chr {
+  background: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme='dark'] .gm-style .gm-style-iw-d {
+  overflow: auto !important; /* Google forces scroll bars, which show as white strips */
+  scrollbar-color: var(--border-strong) var(--surface);
+}
+
+:root[data-theme='dark'] .gm-style .gm-style-iw-tc::after {
+  background: var(--surface); /* the little pointer under the popup */
+}
+
+:root[data-theme='dark'] .gm-style .gm-style-iw-chr button span {
+  background-color: var(--text) !important; /* the popup's close X */
+}
+
+/* Very narrow phones: route buttons a little tighter */
+@media (max-width: 360px) {
+  .chip { padding: 0 11px; font-size: 13px; }
+}
+
+/* ---------- Rider reports ---------- */
+
+/* Small "!" on a bus that riders reported (packed, broke down...) */
+.bus { position: relative; }
+
+.bus.reported::after {
+  content: '!';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-fill);
+  border: 2px solid #fff;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 13px;
+  text-align: center;
+}
+
+.bus-full {
+  margin: 2px 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Rider meter: a chunky rounded bar with a dark outline */
+.full-bar {
+  height: 12px;
+  margin-top: 6px;
+  border: 2px solid var(--game-outline);
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.full-bar > div {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--game-green);
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.35); /* glossy top */
+}
+.full-bar > div.mid { background: var(--game-orange); }
+.full-bar > div.high { background: var(--game-red); }
+
+/* ---------- "Game" style for reports: outlined, glossy, with a pressable 3D edge ---------- */
+
+:root {
+  --game-outline: #1d2233;
+  --game-orange: #b35900;
+  --game-orange-edge: #8a4300;
+  --game-green: #237a17;
+  --game-green-edge: #1c5c13;
+  --game-red: #c8102e;
+  --game-red-edge: #8a0b20;
+  --game-blue: #1a6fd1;
+  --game-blue-edge: #114a8c;
+  --game-purple: #6b3fb5;
+  --game-purple-edge: #47297a;
+}
+
+:root[data-theme='dark'] {
+  --game-outline: #0b0e18;
+}
+
+/* Each report type has its own color */
+.kind-packed, .kind-skipped_stop { --kind: var(--game-orange); --kind-edge: var(--game-orange-edge); }
+.kind-seats_open { --kind: var(--game-green); --kind-edge: var(--game-green-edge); }
+.kind-broke_down { --kind: var(--game-red); --kind-edge: var(--game-red-edge); }
+.kind-detour { --kind: var(--game-blue); --kind-edge: var(--game-blue-edge); }
+.kind-ramp_broken { --kind: var(--game-purple); --kind-edge: var(--game-purple-edge); }
+
+.report-list {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+/* A report card: icon badge + text, outlined like a speech bubble */
+.report-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 2px solid var(--game-outline);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--game-outline);
+}
+
+.report-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--game-outline);
+  border-radius: 10px;
+  background: var(--kind, var(--game-orange));
+  box-shadow: inset 0 3px 0 rgb(255 255 255 / 0.3), inset 0 -3px 0 var(--kind-edge, var(--game-orange-edge));
+  font-size: 18px;
+}
+
+.report-text {
+  min-width: 0;
+  max-width: 220px;
+}
+
+.report-what {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.report-who {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.report-check {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--free);
+}
+
+.report-box {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 2px dashed var(--border-strong);
+}
+
+.report-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 6px;
+  margin-top: 6px;
+  max-width: 290px;
+}
+
+/* The chunky button: colored fill, dark outline, glossy top, darker "3D" bottom edge */
+.report-button {
+  --kind: var(--game-blue);
+  --kind-edge: var(--game-blue-edge);
+  min-height: 44px;
+  padding: 0 14px 3px;
+  border: 2px solid var(--game-outline);
+  border-radius: 16px;
+  background: var(--kind);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.45);
+  box-shadow:
+    inset 0 3px 0 rgb(255 255 255 / 0.28),
+    inset 0 -4px 0 var(--kind-edge),
+    0 3px 0 var(--game-outline);
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.report-button.kind-packed, .report-button.kind-skipped_stop { --kind: var(--game-orange); --kind-edge: var(--game-orange-edge); }
+.report-button.kind-seats_open { --kind: var(--game-green); --kind-edge: var(--game-green-edge); }
+.report-button.kind-broke_down { --kind: var(--game-red); --kind-edge: var(--game-red-edge); }
+.report-button.kind-ramp_broken { --kind: var(--game-purple); --kind-edge: var(--game-purple-edge); }
+
+.report-button:hover {
+  filter: brightness(1.08);
+}
+
+/* Pressed: the button sinks into its edge */
+.report-button:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 3px 0 rgb(255 255 255 / 0.2),
+    inset 0 -2px 0 var(--kind-edge),
+    0 0 0 var(--game-outline);
+}
+
+.report-button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.report-msg {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 2px solid var(--game-outline);
+  border-radius: 12px;
+  background: var(--free-bg);
+  color: var(--free);
+  font-size: 13px;
+  font-weight: 700;
+  max-width: 280px;
+}
+
+.report-msg.error {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.report-msg:empty {
+  display: none;
+}
+
+.option-warning {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--verdict-bus-text);
+}
+
+/* ---------- Google's popup, game style (both themes): thick outline + 3D bottom edge ---------- */
+
+.gm-style .gm-style-iw-c {
+  padding: 12px 14px 14px !important;
+  border: 3px solid var(--game-outline);
+  border-radius: 18px !important;
+  box-shadow: 0 5px 0 var(--game-outline), 0 8px 18px var(--shadow) !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: auto !important; /* no stray scroll bars */
+}
+
+/* The little pointer under the popup: outlined to match */
+.gm-style .gm-style-iw-tc {
+  filter: drop-shadow(0 3px 0 var(--game-outline));
+}
+
+/* The popup's close button: a round outlined button */
+.gm-style .gm-style-iw-chr button {
+  border: 2px solid var(--game-outline) !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  margin: 0 !important;
+  background: var(--surface-2) !important;
+}
+
+.gm-style .gm-style-iw-chr button span {
+  margin: 6px !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.stop-popup h2 {
+  font-weight: 800;
+}
+
+/* Save stop / Saved: outlined chunky button too */
+.stop-popup .star-button,
+.place-card .star-button {
+  border: 2px solid var(--game-outline);
+  border-radius: 14px;
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.12), 0 3px 0 var(--game-outline);
+  font-weight: 800;
+}
+
+.stop-popup .star-button:active,
+.place-card .star-button:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--game-outline);
+}
+
+/* "Still there?" Yes / No under a report */
+.vote-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.vote-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.vote-button {
+  min-height: 44px; /* big enough to tap */
+  padding: 0 10px 2px;
+  border: 2px solid var(--game-outline);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.12), 0 2px 0 var(--game-outline);
+  cursor: pointer;
+}
+
+.vote-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--game-outline);
+}
+
+.vote-button.up[aria-pressed='true'] {
+  background: var(--game-green);
+  color: #fff;
+}
+
+.vote-button.down[aria-pressed='true'] {
+  background: var(--game-red);
+  color: #fff;
+}
+
+.vote-button:disabled {
+  opacity: 0.55;
+}
+
+/* Bus stop results in search */
+.badge-stop {
+  background: var(--uva-navy);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
+}
+
+/* ---------- Cav mode (just for fun: the bus-face button under light/dark) ---------- */
+
+.cav-toggle {
+  top: calc(env(safe-area-inset-top) + 176px);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.cav-toggle img {
+  border-radius: 50%;
+  filter: grayscale(0.6);
+  opacity: 0.85;
+}
+
+.cav-toggle[aria-pressed='true'] {
+  box-shadow: 0 0 0 3px var(--accent), 0 1px 4px var(--shadow);
+}
+
+.cav-toggle[aria-pressed='true'] img {
+  filter: none;
+  opacity: 1;
+}
+
+/* The bus becomes a cartoon bus face (public/cav, drawn by scripts/make-cav.js) inside a ring in its route's color */
+body.cav .bus {
+  width: 44px;
+  height: 44px;
+  border: 4px solid var(--route-color, #777);
+  background: #fff url(/cav/front.png) center / cover no-repeat;
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgb(0 0 0 / 0.5);
+}
+
+body.cav .bus[data-facing='right'] { background-image: url(/cav/right.png); }
+body.cav .bus[data-facing='left'] { background-image: url(/cav/left.png); }
+body.cav .bus.stopped { background-image: url(/cav/sleep.png); }
+body.cav .bus.delayed { background-image: url(/cav/late.png); }
+
+/* The direction arrow becomes a small pointer that circles the ring */
+body.cav .bus-arrow {
+  position: absolute;
+  inset: -11px;
+  width: auto;
+  height: auto;
+  border: 0;
+  background: none;
+  pointer-events: none;
+}
+
+body.cav .bus-arrow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid var(--route-color, #777);
+}
+
+/* Sleeping face already says "stopped" */
+body.cav .bus.stopped .bus-arrow {
+  display: none;
+}
+
+/* ---------- Where am I? (📍 button + live blue dot) ---------- */
+
+.locate-btn {
+  top: calc(env(safe-area-inset-top) + 228px);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--muted);
+}
+
+.locate-btn[data-state='finding'] { color: #1a73e8; animation: locate-blink 1s ease-in-out infinite; }
+.locate-btn[data-state='on'] { color: #1a73e8; box-shadow: 0 0 0 3px #1a73e8, 0 1px 4px var(--shadow); }
+
+@keyframes locate-blink { 50% { opacity: 0.45; } }
+
+/* The live dot gently pulses */
+.you-dot.live {
+  animation: you-pulse 2s ease-out infinite;
+}
+
+@keyframes you-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(26 115 232 / 0.45); }
+  100% { box-shadow: 0 0 0 14px rgb(26 115 232 / 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .you-dot.live, .locate-btn[data-state='finding'] { animation: none; }
+}
+
+/* With the live dot on, the trip card doesn't need its own "you are here" dot */
+body.locating .you-dot:not(.live) {
+  display: none;
+}
+
+/* Short messages (e.g. "Location is off") */
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  top: calc(env(safe-area-inset-top) + 124px);
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  border: 2px solid var(--game-outline);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 3px 0 var(--game-outline), 0 4px 12px var(--shadow);
+  font-weight: 600;
+  z-index: 4;
+}
+
+/* "Prefer:" row on the trip card (same look as "When:") */
+.prefer-row {
+  margin-top: -2px;
+}
+
+/* Save stop + Directions side by side in the stop popup */
+.popup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.popup-actions .star-button {
+  margin: 0;
+}
+
+/* Small round 🧭 next to a saved stop in the Favorites panel */
+.directions-button.compact {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--game-outline);
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: 0 2px 0 var(--game-outline);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.directions-button.compact:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* Save place + Arrival times on the trip card */
+.card-actions {
+  margin: 0 0 8px;
+}
+
+/* ---------- My classes (home panel + add/edit form, src/classes.js) ---------- */
+
+.class-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.class-row.past {
+  opacity: 0.55;
+}
+
+.class-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.class-time {
+  flex: none;
+  min-width: 64px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.class-row.next .class-time {
+  color: var(--accent-ink);
+}
+
+.class-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.class-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.class-where {
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-class {
+  margin: 2px 0 4px;
+}
+
+.class-dialog {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 16px;
+  border: 0;
+  border-top: 4px solid var(--accent);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 30px var(--shadow);
+}
+
+.class-dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+
+.class-dialog h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.class-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.class-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.class-days .seg-button {
+  min-width: 48px;
+}
+
+.class-times {
+  display: flex;
+  gap: 10px;
+}
+
+.class-times .class-field {
+  flex: 1;
+}
+
+.class-error {
+  min-height: 1em;
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--error-text);
+}
+
+.class-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.class-leave {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.class-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+/* SIS import (src/classes.js) */
+.import-steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.import-file {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.import-file:focus-within {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.import-row {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.import-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.import-top input[type='checkbox'] {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.import-label {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.import-where {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 0 32px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.import-replace {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.import-replace input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.class-dialog {
+  overflow-y: auto;
+}
+
+/* ---------- Share my ETA (src/eta.js) ---------- */
+
+/* Rider side: inside the bus popup */
+.share-box {
+  margin-top: 8px;
+}
+
+.share-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.share-field select,
+.share-field input,
+.share-link {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 2px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* 16px stops iPhones zooming in when you tap the box */
+}
+
+.share-link {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.share-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.share-note[hidden] {
+  display: none;
+}
+
+.share-on {
+  font-weight: 800;
+  color: var(--free);
+}
+
+.stop-popup .star-button.share-primary {
+  background: var(--accent-fill);
+  color: #fff;
+}
+
+/* Friend side: the ETA card (looks like the trip card) */
+.eta-card h2 .swatch {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.eta-big {
+  margin: 4px 0 2px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.eta-sub {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.eta-foot {
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+body.has-eta-card .status,
+body.has-eta-card .install-tip,
+body.has-place-card .eta-card {
+  display: none;
+}
+
+/* The bus a shared link follows: bigger, with an orange ring */
+.bus.shared-bus {
+  outline: 4px solid var(--accent);
+  outline-offset: 2px;
+  scale: 1.25;
+}
+
+/* ---------- Leave-now reminders window (src/notify.js) ---------- */
+.notify-intro {
+  margin: 0 0 10px;
+  font-size: 13px;
+}
+
+.notify-state {
+  margin: 6px 0;
+  font-weight: 700;
+}
+
+/* Phones: popups never taller than ~45% of the screen (they scroll inside), so Google doesn't
+   slide the map so far that the popup's ✕ ends up under the buttons at the top. */
+@media (pointer: coarse) {
+  .gm-style .gm-style-iw-d {
+    max-height: 45dvh !important;
+  }
+}

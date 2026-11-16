@@ -1,0 +1,35 @@
+# Secrets: API keys live here. NEVER commit.
+.env
+.env.*
+!.env.example
+
+# Installed packages (re-downloadable with npm install)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS clutter
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Hosting tool folders
+.vercel/
+
+# Demo recorder log
+demo/record-log.txt
+
+# Personal notes for Claude Code (never uploaded)
+CLAUDE.local.md
+PROJECT-HANDOFF.md
+
+# Bus data recorded from TransLoc (kept local, not published)
+demo/recording*.json
+samples/*.json
+demo/walkthrough.md

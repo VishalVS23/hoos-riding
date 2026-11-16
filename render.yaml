@@ -1,0 +1,27 @@
+# Render setup ("Blueprint"). Render's Blueprint reads this file and manages the live service
+# "hoomaps" (https://hoomaps.onrender.com). Every push to GitHub's main branch redeploys automatically.
+# Careful: changing "name" below makes the Blueprint look for (or create) a different service.
+# Secrets marked sync: false are set in Render → hoomaps → Environment, never here.
+services:
+  - type: web
+    name: hoomaps
+    runtime: node
+    plan: free # $0; sleeps after 15 min with no visitors (~50s to wake up)
+    region: virginia
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      # Secrets: Render asks for these once when the Blueprint is created (sync: false = never in git).
+      - key: TRANSLOC_API_KEY
+        sync: false
+      - key: VITE_GOOGLE_MAPS_KEY
+        sync: false
+      - key: VITE_GOOGLE_MAP_ID
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false

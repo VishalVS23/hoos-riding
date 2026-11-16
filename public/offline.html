@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#232d4b" />
+    <title>HooMaps (offline)</title>
+    <style>
+      html, body { margin: 0; height: 100%; }
+      body {
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+        background: #232d4b;
+        color: #fff;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        text-align: center;
+      }
+      img { width: 96px; height: 96px; }
+      h1 { font-size: 22px; margin: 16px 0 8px; }
+      p { margin: 0 auto 24px; max-width: 320px; line-height: 1.4; opacity: 0.9; }
+      button {
+        min-height: 48px;
+        padding: 0 28px;
+        border: 0;
+        border-radius: 999px;
+        background: #e57200;
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="" />
+      <h1>You're offline</h1>
+      <p>HooMaps needs a connection to show live buses. Check your signal or Wi-Fi and try again.</p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

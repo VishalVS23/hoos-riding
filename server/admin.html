@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>HooMaps Admin</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f1f3f7; --card: #fff; --text: #232d4b; --muted: #5b6475; --line: #1d2233;
+        --orange: #b35900; --red: #c8102e; --green: #237a17;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #10172a; --card: #1b2236; --text: #eef1f7; --muted: #a9b1c3; --line: #0b0e18; }
+      }
+      body { margin: 0; background: var(--bg); color: var(--text); }
+      main { max-width: 760px; margin: 0 auto; padding: 16px; }
+      h1 { font-size: 22px; margin: 8px 0 4px; }
+      p.sub { margin: 0 0 16px; color: var(--muted); }
+      .card {
+        background: var(--card); border: 3px solid var(--line); border-radius: 18px;
+        box-shadow: 0 5px 0 var(--line); padding: 14px; margin-bottom: 14px;
+      }
+      input[type=password] {
+        width: 100%; box-sizing: border-box; height: 46px; padding: 0 12px; font-size: 16px;
+        border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text);
+      }
+      button {
+        min-height: 44px; padding: 0 14px 3px; border: 2px solid var(--line); border-radius: 14px;
+        background: var(--orange); color: #fff; font: inherit; font-weight: 800; cursor: pointer;
+        box-shadow: inset 0 3px 0 rgb(255 255 255 / 0.25), inset 0 -4px 0 rgb(0 0 0 / 0.25), 0 3px 0 var(--line);
+      }
+      button:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+      button.red { background: var(--red); }
+      button.plain { background: var(--card); color: var(--text); }
+      button:disabled { opacity: 0.5; }
+      .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      .report { display: grid; gap: 4px; padding: 10px 0; border-top: 1px solid rgb(127 127 127 / 0.3); }
+      .report:first-child { border-top: 0; }
+      .what { font-weight: 800; }
+      .meta { font-size: 13px; color: var(--muted); }
+      .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700;
+             border: 2px solid var(--line); }
+      .tag.live { background: var(--green); color: #fff; }
+      .tag.removed { background: var(--red); color: #fff; }
+      .tag.expired { background: var(--card); }
+      .phone { font-family: ui-monospace, Consolas, monospace; }
+      .msg { margin-top: 8px; font-weight: 700; }
+      .msg.error { color: var(--red); }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>🚌 HooMaps Admin</h1>
+      <p class="sub">Rider reports from the last 24 hours. "Remove" hides a report everywhere within ~15 seconds.</p>
+
+      <form id="login" class="card">
+        <label for="pw"><b>Admin password</b></label>
+        <div class="row" style="margin-top: 8px">
+          <input id="pw" type="password" autocomplete="current-password" required style="flex: 1; min-width: 200px" />
+          <button type="submit">Log in</button>
+        </div>
+        <div id="login-msg" class="msg error" role="status"></div>
+      </form>
+
+      <section id="panel" hidden>
+        <div class="row" style="margin-bottom: 12px">
+          <button id="refresh" class="plain" type="button">↻ Refresh</button>
+          <label class="row" style="gap: 6px"><input id="show-old" type="checkbox" /> Show expired + removed</label>
+          <button id="logout" class="plain" type="button" style="margin-left: auto">Log out</button>
+        </div>
+        <div id="panel-msg" class="msg" role="status"></div>
+        <div id="list" class="card"></div>
+      </section>
+    </main>
+
+    <script>
+      const LABELS = {
+        packed: '😣 Packed', seats_open: '💺 Seats open', broke_down: '🛠️ Broke down',
+        detour: '↪️ Detour', ramp_broken: '♿ Ramp not working', skipped_stop: '⏭️ Skipped stop',
+      };
+      let token = sessionStorage.getItem('hr-admin') || '';
+      let data = null;
+
+      const $ = (id) => document.getElementById(id);
+
+      async function call(path, options = {}) {
+        const res = await fetch(path, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) },
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 401 && path !== '/api/admin/login') {
+          showLogin('Please log in again.');
+          throw new Error('logged out');
+        }
+        if (!res.ok) throw new Error(body.error || `Error ${res.status}`);
+        return body;
+      }
+
+      function showLogin(message = '') {
+        token = '';
+        sessionStorage.removeItem('hr-admin');
+        $('panel').hidden = true;
+        $('login').hidden = false;
+        $('login-msg').textContent = message;
+      }
+
+      $('login').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        $('login-msg').textContent = '';
+        try {
+          const { token: t } = await call('/api/admin/login', { method: 'POST', body: JSON.stringify({ password: $('pw').value }) });
+          token = t;
+          sessionStorage.setItem('hr-admin', t); // only for this browser tab
+          $('pw').value = '';
+          load();
+        } catch (err) {
+          $('login-msg').textContent = err.message;
+        }
+      });
+
+      $('logout').addEventListener('click', () => showLogin());
+      $('refresh').addEventListener('click', () => load());
+      $('show-old').addEventListener('change', () => render());
+
+      async function load() {
+        $('login').hidden = true;
+        $('panel').hidden = false;
+        $('panel-msg').textContent = 'Loading…';
+        try {
+          data = await call('/api/admin/reports');
+          $('panel-msg').textContent = '';
+          render();
+        } catch (err) {
+          if (err.message !== 'logged out') $('panel-msg').textContent = err.message;
+        }
+      }
+
+      function render() {
+        const list = $('list');
+        list.replaceChildren();
+        const now = Date.now();
+        const showOld = $('show-old').checked;
+        const rows = data.reports.filter((r) => showOld || (!r.removed && Date.parse(r.expiresAt) > now));
+        if (!rows.length) {
+          list.textContent = showOld ? 'No reports in the last 24 hours.' : 'No live reports right now. 🎉';
+          return;
+        }
+        // How many reports each phone sent today (spots spammers).
+        const perPhone = {};
+        for (const r of data.reports) perPhone[r.phone] = (perPhone[r.phone] || 0) + 1;
+
+        for (const r of rows) {
+          const live = !r.removed && Date.parse(r.expiresAt) > now;
+          const el = document.createElement('div');
+          el.className = 'report';
+          const about = r.vehicleId != null
+            ? `Bus ${r.vehicleId}${r.routeId != null ? ` · ${data.routeNames[r.routeId] || `route ${r.routeId}`}` : ''}`
+            : `Stop: ${data.stopNames[r.stopId] || r.stopId}`;
+          const when = new Date(r.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+          const top = document.createElement('div');
+          top.className = 'row';
+          const what = document.createElement('span');
+          what.className = 'what';
+          what.textContent = `${LABELS[r.kind] || r.kind}`;
+          const tag = document.createElement('span');
+          tag.className = `tag ${r.removed ? 'removed' : live ? 'live' : 'expired'}`;
+          tag.textContent = r.removed ? 'removed' : live ? 'live' : 'expired';
+          top.append(what, tag);
+
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          meta.append(`${about} · ${when} · 👍 ${r.ups} 👎 ${r.downs} · phone `);
+          const phone = document.createElement('span');
+          phone.className = 'phone';
+          phone.textContent = r.phone.slice(0, 6);
+          meta.append(phone, ` (${perPhone[r.phone]} today)`);
+
+          const actions = document.createElement('div');
+          actions.className = 'row';
+          if (!r.removed) {
+            const remove = document.createElement('button');
+            remove.className = 'red';
+            remove.type = 'button';
+            remove.textContent = 'Remove';
+            remove.addEventListener('click', () => act(`/api/admin/reports/${r.id}/remove`, 'Removed.'));
+            actions.append(remove);
+          }
+          if (perPhone[r.phone] > 1 || !r.removed) {
+            const all = document.createElement('button');
+            all.className = 'plain';
+            all.type = 'button';
+            all.textContent = `Remove all from phone ${r.phone.slice(0, 6)}`;
+            all.addEventListener('click', () => {
+              if (confirm(`Remove all ${perPhone[r.phone]} reports from phone ${r.phone.slice(0, 6)} (last 24 h)?`)) {
+                act(`/api/admin/phones/${r.phone}/remove`, 'Removed everything from that phone.');
+              }
+            });
+            actions.append(all);
+          }
+          el.append(top, meta, actions);
+          list.append(el);
+        }
+      }
+
+      async function act(path, done) {
+        $('panel-msg').textContent = 'Working…';
+        try {
+          await call(path, { method: 'POST' });
+          await load();
+          $('panel-msg').textContent = done;
+        } catch (err) {
+          if (err.message !== 'logged out') $('panel-msg').textContent = err.message;
+        }
+      }
+
+      if (token) load();
+    </script>
+  </body>
+</html>
