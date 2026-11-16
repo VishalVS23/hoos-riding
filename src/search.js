@@ -123,6 +123,13 @@ function chooseDestination(place) {
 }
 
 // Ask the phone where we are. Falls back to "Starting from" if it can't or won't.
+// Two asks at once: a ROUGH location (Wi-Fi / cell towers, usually under 1 s) plans the trip
+// right away; a PRECISE one (GPS, can take 2-10 s, longer indoors and on laptops) quietly
+// replaces it if it lands far enough away to change which stop is best.
+const ROUGH_OK_M = 500; // a rough fix this accurate (or better) is good enough to start with
+const PRECISE_MOVE_M = 150; // re-plan only if the precise fix is this far from the rough one
+let findCount = 0;
+
 function findMe() {
   // The live blue dot is on: use it right away instead of asking the phone again.
   const live = liveLocation();
@@ -130,13 +137,54 @@ function findMe() {
     return setOrigin({ name: 'My location', location: live, isGps: true });
   }
   if (!navigator.geolocation) return askForStart('Your browser can’t share location.');
+
+  const myFind = ++findCount;
+  const stillWanted = () => myFind === findCount && destination; // card not closed / searched again
+  let started = false; // a trip has been planned from one of the two fixes
+  let preciseDone = false;
+  const toPoint = (pos) => ({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+
   navigator.geolocation.getCurrentPosition(
     (pos) => {
-      const here = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      if (metersBetween(here, GROUNDS) > NEAR_GROUNDS_M) return askForStart('You’re not near Grounds right now.');
+      if (!stillWanted() || started) return;
+      const here = toPoint(pos);
+      // Too fuzzy (e.g. one cell tower) or seemingly far away: wait for the precise answer.
+      if (pos.coords.accuracy > ROUGH_OK_M || metersBetween(here, GROUNDS) > NEAR_GROUNDS_M) return;
+      started = true;
       setOrigin({ name: 'My location', location: here, isGps: true });
     },
-    (err) => askForStart(err.code === err.PERMISSION_DENIED ? 'Location is turned off for this site.' : 'Couldn’t find your location.'),
+    (err) => {
+      // Only matters if the precise ask also can't help (it reports its own failure).
+      if (stillWanted() && !started && preciseDone && err.code === err.PERMISSION_DENIED) {
+        askForStart('Location is turned off for this site.');
+      }
+    },
+    { enableHighAccuracy: false, timeout: 4_000, maximumAge: 120_000 },
+  );
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      preciseDone = true;
+      if (!stillWanted()) return;
+      const here = toPoint(pos);
+      const nearGrounds = metersBetween(here, GROUNDS) <= NEAR_GROUNDS_M;
+      if (!started) {
+        if (!nearGrounds) return askForStart('You’re not near Grounds right now.');
+        started = true;
+        return setOrigin({ name: 'My location', location: here, isGps: true });
+      }
+      // Already planned from the rough fix: update only if it really moved (and we're still
+      // starting from "My location", not a place typed in since).
+      if (!nearGrounds || !origin?.isGps || metersBetween(here, origin.location) < PRECISE_MOVE_M) return;
+      origin.location = here;
+      youDot = placeMarker(youDot, 'you-dot', here, 'You are here', 19);
+      loadTrip({ refit: false });
+    },
+    (err) => {
+      preciseDone = true;
+      if (!stillWanted() || started) return; // the rough fix already did the job
+      askForStart(err.code === err.PERMISSION_DENIED ? 'Location is turned off for this site.' : 'Couldn’t find your location.');
+    },
     { enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000 },
   );
 }
