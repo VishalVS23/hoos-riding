@@ -80,3 +80,54 @@ create table if not exists public.reminder_sends (
   primary key (device, class_id, day)
 );
 alter table public.reminder_sends enable row level security;
+
+-- ---------- How many people use the app (only the owner sees this, on /admin + a nightly push) ----------
+
+-- One row per phone per Eastern day it opened the app. "device" is the same scrambled random ID as
+-- reports: never a name, location or the real ID. Rows older than 90 days are deleted.
+create table if not exists public.phone_days (
+  device text not null,
+  day text not null,                -- Eastern date, e.g. '2026-11-16'
+  primary key (device, day)
+);
+alter table public.phone_days enable row level security;
+
+-- The first day each phone was seen (for "new today" and "all time").
+create table if not exists public.phones (
+  device text primary key,
+  first_day text not null
+);
+alter table public.phones enable row level security;
+
+-- Small owner settings, e.g. which phone gets the nightly numbers and which devices aren't counted.
+create table if not exists public.app_settings (
+  key text primary key,
+  value jsonb,
+  updated_at timestamptz not null default now()
+);
+alter table public.app_settings enable row level security;
+
+-- The numbers for the admin page: phones today, new today, last 7 days, all time, and a day-by-day list.
+create or replace function public.phone_stats(p_today text, p_week_start text, p_exclude text[])
+returns json
+language sql
+stable
+set search_path = ''
+as $$
+  select json_build_object(
+    'today', (select count(*) from public.phone_days where day = p_today and not (device = any (p_exclude))),
+    'newToday', (select count(*) from public.phones where first_day = p_today and not (device = any (p_exclude))),
+    'week', (select count(distinct device) from public.phone_days where day >= p_week_start and not (device = any (p_exclude))),
+    'allTime', (select count(*) from public.phones where not (device = any (p_exclude))),
+    'days', (
+      select coalesce(json_agg(json_build_object('day', d.day, 'phones', d.n, 'new', d.nn) order by d.day desc), '[]'::json)
+      from (
+        select pd.day, count(*) as n, count(*) filter (where p.first_day = pd.day) as nn
+        from public.phone_days pd join public.phones p on p.device = pd.device
+        where pd.day >= p_week_start and not (pd.device = any (p_exclude))
+        group by pd.day
+      ) d
+    )
+  );
+$$;
+revoke execute on function public.phone_stats(text, text, text[]) from public, anon, authenticated;

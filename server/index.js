@@ -14,6 +14,7 @@ import * as push from './push.js';
 import * as db from './db.js';
 import { makeReminders } from './reminders.js';
 import * as admin from './admin.js';
+import * as visitors from './visitors.js';
 import * as demo from './demo.js';
 import * as google from './google.js';
 import { makeBunchTracker } from './bunching.js';
@@ -41,6 +42,7 @@ await demo.loadRecording();
 await google.loadPlaces();
 await google.loadSavedUsage();
 await push.load();
+await visitors.load();
 
 // ---------- Vehicles (bus positions) ----------
 
@@ -152,6 +154,7 @@ app.get('/api/vehicles', async (req, res) => {
   }
 
   lastAskedAt = Date.now();
+  visitors.seen(device); // private user count (server/visitors.js)
   // If we haven't polled recently (first visitor after a quiet spell), get fresh data now.
   if (!pollTimer || Date.now() - vehicles.fetchedAt > VEHICLE_POLL_MS * 3) {
     await pollVehicles();
@@ -408,6 +411,55 @@ app.post('/api/admin/phones/:device/remove', admin.requireAdmin, async (req, res
   }
 });
 
+// Private user counts (server/visitors.js). Only for the logged-in owner, never on /api/usage.
+app.get('/api/admin/stats', admin.requireAdmin, async (req, res) => {
+  try {
+    const lastTest = push.getLastTest();
+    res.json({
+      stats: await visitors.stats(),
+      owner: visitors.ownerInfo(),
+      lastTestMinAgo: lastTest ? Math.floor((Date.now() - lastTest.at) / 60_000) : null,
+      usage: google.getUsage().usage,
+    });
+  } catch (err) {
+    console.error('[admin stats]', err.message);
+    res.status(500).json({ error: 'Couldn’t load the numbers (were the new tables added in Supabase?).' });
+  }
+});
+
+app.post('/api/admin/owner/phone', admin.requireAdmin, async (req, res) => {
+  const result = await visitors.pairPhone(push.getLastTest()).catch((err) => ({ ok: false, error: err.message }));
+  res.status(result.ok ? 200 : 400).json(result);
+});
+
+app.post('/api/admin/owner/browser', admin.requireAdmin, express.json({ limit: '1kb' }), async (req, res) => {
+  const result = await visitors.excludeBrowser(req.body?.device).catch((err) => ({ ok: false, error: err.message }));
+  res.status(result.ok ? 200 : 400).json(result);
+});
+
+app.post('/api/admin/owner/reset', admin.requireAdmin, async (req, res) => {
+  await visitors.resetOwner().catch(() => {});
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/owner/digest-test', admin.requireAdmin, async (req, res) => {
+  try {
+    const result = await visitors.sendDigestNow(push.sendTo, digestExtra());
+    res.status(result.ok ? 200 : 400).json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// For the nightly numbers: today's trip lookups + any Google cap that was hit.
+function digestExtra() {
+  const { usage } = google.getUsage();
+  return {
+    trips: usage.routes.today,
+    capsHit: Object.entries(usage).filter(([, u]) => u.today >= u.dailyCap).map(([k]) => k),
+  };
+}
+
 // ---------- Search + walking times (Google, through the safety layer in google.js) ----------
 
 // Simple speed limit: each INTERNET ADDRESS gets 300 Google-backed requests per minute.
@@ -556,7 +608,7 @@ app.get('/api/trip', async (req, res) => {
 
   try {
     const prefer = ['fastest', 'walk', 'transfers'].includes(req.query.prefer) ? req.query.prefer : 'fastest';
-    res.json(await computeTrip({ from, to, arriveByMs, prefer, isDemo: wantsDemo(req) }));
+    res.json(await computeTrip({ from, to, arriveByMs, prefer, isDemo: wantsDemo(req), quick: req.query.quick === '1' }));
   } catch (err) {
     console.error('[trip]', err.message);
     res.status(502).json({ error: 'Trip times are unavailable right now.' });
@@ -564,7 +616,9 @@ app.get('/api/trip', async (req, res) => {
 });
 
 // Trip options from a to b (also used by leave-now reminders, server/reminders.js).
-async function computeTrip({ from, to, arriveByMs, prefer = 'fastest', isDemo = false }) {
+// quick: skip CAT + transfers (catStatus 'later'), so the phone can show walk + UVA first
+// while the full answer (asked at the same time) waits for Google's CAT times.
+async function computeTrip({ from, to, arriveByMs, prefer = 'fastest', isDemo = false, quick = false }) {
   // The whole-way walking time is the only Google call (cached). Falls back to a free estimate.
   const getDirectWalk = async () => {
     try {
@@ -579,6 +633,7 @@ async function computeTrip({ from, to, arriveByMs, prefer = 'fastest', isDemo = 
   // CAT city buses from Google's schedules (cached 5 min). UVA + walking still work if this fails.
   // Also used for transfers: CAT between other points (a, b), leaving later (leaveAtMs).
   const getCat = async (a = from, b = to, leaveAtMs, arriveByMs) => {
+    if (quick) return { options: [], status: 'later' };
     try {
       return { options: await google.getTransit(a, b, leaveAtMs, arriveByMs), status: 'ok' };
     } catch (err) {
@@ -618,6 +673,7 @@ if (db.configured) {
   }, 6 * 3600_000).unref();
 }
 if (push.configured) reminders.start();
+if (push.configured) visitors.startDigest({ send: push.sendTo, extra: digestExtra });
 
 // How much of our Google allowance we've used. Safe to show: no keys or personal data.
 app.get('/api/usage', (req, res) => res.json({ ...google.getUsage(), reminders: reminders.status() }));

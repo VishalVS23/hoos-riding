@@ -72,6 +72,23 @@
           <label class="row" style="gap: 6px"><input id="show-old" type="checkbox" /> Show expired + removed</label>
           <button id="logout" class="plain" type="button" style="margin-left: auto">Log out</button>
         </div>
+        <div id="stats" class="card">
+          <b>📊 Who's using it</b>
+          <div id="stats-body" class="meta" style="margin-top: 6px">Loading…</div>
+          <div id="stats-days" class="meta"></div>
+          <details style="margin-top: 10px">
+            <summary><b>Leave me out + nightly numbers</b></summary>
+            <p class="meta" id="owner-state"></p>
+            <p class="meta">Phone: in the HooMaps app, go to My classes → 🔔 Reminders → <b>Send a test notification</b>,
+              then press <b>This is my phone</b> here within 15 min. That phone isn't counted and gets the numbers every night at 9 PM.</p>
+            <div class="row">
+              <button id="pair-phone" type="button">📱 This is my phone</button>
+              <button id="skip-browser" class="plain" type="button">💻 Don't count this browser</button>
+              <button id="digest-now" class="plain" type="button">Send me the numbers now</button>
+              <button id="owner-reset" class="plain" type="button">Reset</button>
+            </div>
+          </details>
+        </div>
         <div id="panel-msg" class="msg" role="status"></div>
         <div id="list" class="card"></div>
       </section>
@@ -132,6 +149,7 @@
         $('panel').hidden = false;
         $('panel-msg').textContent = 'Loading…';
         try {
+          loadStats();
           data = await call('/api/admin/reports');
           $('panel-msg').textContent = '';
           render();
@@ -218,6 +236,48 @@
           if (err.message !== 'logged out') $('panel-msg').textContent = err.message;
         }
       }
+
+      async function loadStats() {
+        try {
+          const d = await call('/api/admin/stats');
+          const s = d.stats;
+          const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+          $('stats-body').textContent = s
+            ? `Today: ${plural(s.today, 'phone')} (${s.newToday} new) · last 7 days: ${s.week} · all time: ${s.allTime} · trip lookups today: ${d.usage.routes.today}`
+            : 'Counting needs Supabase.';
+          $('stats-days').textContent = s?.days?.length
+            ? s.days.map((x) => `${x.day.slice(5)}: ${x.phones} (${x.new} new)`).join(' · ')
+            : '';
+          $('owner-state').textContent =
+            `${d.owner.phonePaired ? '✅ Your phone gets the nightly numbers.' : 'No phone paired yet.'} ` +
+            `${plural(d.owner.notCounted, 'device')} left out of the counts. ` +
+            (d.lastTestMinAgo != null ? `Last test notification: ${d.lastTestMinAgo} min ago.` : 'No test notification since the server started.');
+        } catch (err) {
+          if (err.message !== 'logged out') $('stats-body').textContent = err.message;
+        }
+      }
+
+      async function ownerAct(path, body, done) {
+        $('panel-msg').textContent = 'Working…';
+        try {
+          await call(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined });
+          $('panel-msg').textContent = done;
+          loadStats();
+        } catch (err) {
+          if (err.message !== 'logged out') $('panel-msg').textContent = err.message;
+        }
+      }
+
+      $('pair-phone').addEventListener('click', () => ownerAct('/api/admin/owner/phone', null, 'Paired: your phone is left out and gets the numbers at 9 PM.'));
+      $('skip-browser').addEventListener('click', () => {
+        let device = null;
+        try { device = localStorage.getItem('hoos-riding.device'); } catch {}
+        ownerAct('/api/admin/owner/browser', { device }, 'This browser is no longer counted.');
+      });
+      $('digest-now').addEventListener('click', () => ownerAct('/api/admin/owner/digest-test', null, 'Sent. Check your phone.'));
+      $('owner-reset').addEventListener('click', () => {
+        if (confirm('Count all your devices again and stop the nightly numbers?')) ownerAct('/api/admin/owner/reset', null, 'Reset.');
+      });
 
       if (token) load();
     </script>

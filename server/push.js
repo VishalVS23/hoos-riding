@@ -35,6 +35,8 @@ const PUSH_HOSTS = [
 
 const subs = new Map(); // scrambled device -> { endpoint, keys: { p256dh, auth }, plan }
 const tests = new Map(); // scrambled device -> [timestamps]
+let lastTest = null; // { device, at }: the admin page's "This is my phone" pairs this one
+export const getLastTest = () => lastTest;
 
 function isValid(sub) {
   if (!sub || typeof sub.endpoint !== 'string' || sub.endpoint.length > 1000) return false;
@@ -151,6 +153,7 @@ export async function sendTest(rawDevice) {
   const recent = (tests.get(device) || []).filter((t) => now - t < TEST_WINDOW_MS);
   if (recent.length >= TEST_LIMIT) return { ok: false, status: 429, error: 'That’s a few tests already. Try again in a few minutes.' };
   tests.set(device, [...recent, now]);
+  lastTest = { device, at: now };
   // With classes saved, tapping the test opens a class's trip (like a real reminder).
   const c = subs.get(device).plan?.classes?.[0];
   const sent = await sendTo(device, {

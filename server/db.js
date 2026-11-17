@@ -178,6 +178,35 @@ export async function deleteReminderSendsBefore(day) {
   return rest(`reminder_sends?day=lt.${encodeURIComponent(day)}`, { method: 'DELETE' });
 }
 
+// ---------- How many people use the app (server/visitors.js) ----------
+
+// "This phone opened the app today" (+ its first day ever). Repeats are ignored.
+export async function recordPhoneDay(device, day) {
+  await rest('phones', { method: 'POST', body: { device, first_day: day }, prefer: 'resolution=ignore-duplicates' });
+  await rest('phone_days', { method: 'POST', body: { device, day }, prefer: 'resolution=ignore-duplicates' });
+}
+
+export async function phoneStats(today, weekStart, exclude) {
+  return rest('rpc/phone_stats', { method: 'POST', body: { p_today: today, p_week_start: weekStart, p_exclude: exclude } });
+}
+
+export async function deletePhoneDaysBefore(day) {
+  return rest(`phone_days?day=lt.${encodeURIComponent(day)}`, { method: 'DELETE' });
+}
+
+export async function loadSetting(key) {
+  const rows = await rest(`app_settings?select=value&key=eq.${encodeURIComponent(key)}`);
+  return rows?.[0]?.value ?? null;
+}
+
+export async function saveSetting(key, value) {
+  return rest('app_settings', {
+    method: 'POST',
+    body: { key, value, updated_at: new Date().toISOString() },
+    prefer: 'resolution=merge-duplicates',
+  });
+}
+
 // ---------- Background jobs ----------
 
 if (configured) {
