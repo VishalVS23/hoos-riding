@@ -265,7 +265,20 @@ export async function getWalk(from, to) {
   const cacheKey = `WALK:${r(from.lat)},${r(from.lng)}>${r(to.lat)},${r(to.lng)}`;
   const cached = routeCache.read(cacheKey);
   if (cached) return { ...cached, cached: true };
+  return shareInFlight(cacheKey, () => fetchWalk(from, to, cacheKey));
+}
 
+// Two requests asking Google the same question at the same moment (the phone's quick +
+// full trip lookups, or classmates searching the same trip) share ONE Google call.
+const inFlight = new Map(); // cache key -> promise of the answer
+function shareInFlight(key, ask) {
+  if (inFlight.has(key)) return inFlight.get(key);
+  const p = ask().finally(() => inFlight.delete(key));
+  inFlight.set(key, p);
+  return p;
+}
+
+async function fetchWalk(from, to, cacheKey) {
   spend('routes');
   const point = (p) => ({ location: { latLng: { latitude: p.lat, longitude: p.lng } } });
   // Basic fields only, and no traffic-aware options, so this stays in the cheapest (Essentials) tier.
@@ -310,7 +323,10 @@ export async function getTransit(from, to, leaveAtMs, arriveByMs) {
   const startAt = Math.max(Date.now(), leaveAtMs || 0);
   const catchable = (o) => o.departAt - startAt > o.walkBeforeSeconds * 1000 + 30_000;
   if (cached && (cached.length === 0 || cached.some(catchable))) return cached;
+  return shareInFlight(cacheKey, () => fetchTransit(from, to, leaveAtMs, arriveByMs, cacheKey));
+}
 
+async function fetchTransit(from, to, leaveAtMs, arriveByMs, cacheKey) {
   spend('routes');
   const point = (p) => ({ location: { latLng: { latitude: p.lat, longitude: p.lng } } });
   const data = await googlePost(

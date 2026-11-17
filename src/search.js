@@ -129,6 +129,7 @@ function chooseDestination(place) {
 const ROUGH_OK_M = 500; // a rough fix this accurate (or better) is good enough to start with
 const PRECISE_MOVE_M = 150; // re-plan only if the precise fix is this far from the rough one
 let findCount = 0;
+let optionTaps = 0; // trip options tapped so far (the full answer leaves your tapped route alone)
 
 function findMe() {
   // The live blue dot is on: use it right away instead of asking the phone again.
@@ -224,13 +225,37 @@ async function loadTrip({ refit = true } = {}) {
   }
 
   const pt = (p) => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`;
+  if (arriveByMs && arriveByMs < Date.now() - 60_000) arriveByMs = null; // that time has passed
+  const when = (arriveByMs ? `&arriveBy=${arriveByMs}` : '') + (prefer !== 'fastest' ? `&prefer=${prefer}` : '');
+  const url = `/api/trip?from=${pt(origin.location)}&to=${pt(destination.location)}${when}${ctx.demo ? '&demo=1' : ''}`;
+  const ask = async (extra = '') => {
+    const res = await fetch(url + extra);
+    const json = await res.json();
+    if (!res.ok) throw Object.assign(new Error(json.error || 'Trip failed'), { friendly: json.error });
+    return json;
+  };
+
+  // A fresh trip: also ask for a QUICK answer (walk + UVA, no CAT) and show it first. CAT
+  // options slide in when the full answer arrives (the server shares Google calls between them).
+  const full = ask();
+  let shownQuick = false;
+  let tapsAtQuick = 0;
+  if (refit) {
+    ask('&quick=1').then((quick) => {
+      if (myTrip !== tripCount || lastTrip?.tripId === myTrip) return; // old, or the full answer won
+      shownQuick = true;
+      tapsAtQuick = optionTaps;
+      lastTrip = { ...quick, tripId: myTrip };
+      showCard({ trip: quick });
+      const top = quick.options?.[0];
+      if (top?.type === 'walk') showWalkLine(top);
+      fitMap([origin.location, destination.location]);
+    }).catch(() => {}); // the full answer reports any problem
+  }
+
   let data;
   try {
-    if (arriveByMs && arriveByMs < Date.now() - 60_000) arriveByMs = null; // that time has passed
-    const when = (arriveByMs ? `&arriveBy=${arriveByMs}` : '') + (prefer !== 'fastest' ? `&prefer=${prefer}` : '');
-    const res = await fetch(`/api/trip?from=${pt(origin.location)}&to=${pt(destination.location)}${when}${ctx.demo ? '&demo=1' : ''}`);
-    data = await res.json();
-    if (!res.ok) throw Object.assign(new Error(data.error || 'Trip failed'), { friendly: data.error });
+    data = await full;
   } catch (err) {
     if (myTrip !== tripCount) return;
     console.error(err);
@@ -240,13 +265,16 @@ async function loadTrip({ refit = true } = {}) {
   }
   if (myTrip !== tripCount) return;
 
-  lastTrip = data;
+  const quickTop = shownQuick ? lastTrip.options?.[0] : null;
+  const tappedMeanwhile = shownQuick && optionTaps !== tapsAtQuick; // leave their tapped route alone
+  lastTrip = { ...data, tripId: myTrip };
   showCard({ trip: data });
-  if (refit) {
+  if (refit && !tappedMeanwhile) {
     // When walking is the best way, draw the walking path right away.
     const top = data.options?.[0];
-    if (top?.type === 'walk') showWalkLine(top);
-    fitMap([origin.location, destination.location]);
+    if (top?.type === 'walk' && quickTop?.type !== 'walk') showWalkLine(top);
+    if (top?.type !== 'walk' && quickTop?.type === 'walk') hideTripLine(); // CAT beat walking after all
+    if (!shownQuick) fitMap([origin.location, destination.location]);
   }
   // From a leave-now reminder: show the best option right away (its route, stop and walk).
   if (autoPick && data.tooLate && arriveByMs) {
@@ -678,6 +706,7 @@ function fillOptions(body, trip) {
   // No CAT option and Google's next CAT bus is over an hour away (e.g. CAT doesn't run Sundays).
   if (trip.catNextAt) addNote(`No CAT buses until ${dayClock(trip.catNextAt)}.`);
 
+  if (trip.catStatus === 'later') addNote('⏳ Checking CAT buses…');
   if (trip.catStatus === 'limit' || trip.catStatus === 'error') {
     const note = document.createElement('p');
     note.className = 'card-note';
@@ -1105,6 +1134,7 @@ function optionButton(fastest) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'trip-option';
+  btn.addEventListener('click', () => optionTaps++);
   if (fastest) {
     btn.classList.add('fastest');
     const tag = document.createElement('span');

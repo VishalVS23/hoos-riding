@@ -340,13 +340,15 @@ export async function planTrip({ from, to, routes, stops, getArrivals, getDirect
   if (arriveByMs) return planArriveBy({ from, to, net, now, getDirectWalk, getCat, arriveByMs, prefer });
 
   const catPromise = getCat(from, to); // ask Google for CAT while we work out the UVA options
-  const walk = await getDirectWalk();
+  // Bus times (TransLoc) for nearby stops are fetched while Google works out the walk.
+  const [walk, uvaNear] = await Promise.all([getDirectWalk(), uvaOptions(net, from, to, now, 0, MAX_WALK_TO_STOP_M)]);
   const options = [{ type: 'walk', totalSeconds: walk.seconds, estimated: walk.estimated, polyline: walk.polyline || '' }];
   const slack = prefer === 'walk' ? LESS_WALK_SLOWER_S : MAX_SLOWER_THAN_WALK_S;
   const worthIt = (o) => o.totalSeconds <= walk.seconds + slack
     && !(o.totalSeconds > walk.seconds - NOT_FASTER_S && sparesTooLittleWalking(o, walk.seconds));
 
-  const uva = await uvaOptions(net, from, to, now, 0, stopReach(walk.seconds));
+  const reach = stopReach(walk.seconds);
+  const uva = reach === MAX_WALK_TO_STOP_M ? uvaNear : await uvaOptions(net, from, to, now, 0, reach); // long walk: look farther
   options.push(...uva.options.filter(worthIt).slice(0, MAX_BUS_OPTIONS));
 
   // CAT (city buses, from Google's schedules), same rules.
@@ -393,7 +395,7 @@ function catNextAt(cat, shown, now) {
 async function planArriveBy({ from, to, net, now, getDirectWalk, getCat, arriveByMs, prefer }) {
   const target = (arriveByMs - now) / 1000; // seconds from now
   const catPromise = getCat(from, to, undefined, arriveByMs);
-  const walk = await getDirectWalk();
+  const [walk, uvaNear] = await Promise.all([getDirectWalk(), uvaArriveBy(net, from, to, now, target, MAX_WALK_TO_STOP_M)]);
 
   const options = [{
     type: 'walk',
@@ -408,7 +410,8 @@ async function planArriveBy({ from, to, net, now, getDirectWalk, getCat, arriveB
   const worthIt = (o) => o.leaveBySeconds >= walkLeave - (prefer === 'walk' ? LESS_WALK_SLOWER_S : MAX_SLOWER_THAN_WALK_S)
     && !(o.leaveBySeconds < walkLeave + NOT_FASTER_S && sparesTooLittleWalking(o, walk.seconds));
 
-  const uva = await uvaArriveBy(net, from, to, now, target, stopReach(walk.seconds));
+  const reach = stopReach(walk.seconds);
+  const uva = reach === MAX_WALK_TO_STOP_M ? uvaNear : await uvaArriveBy(net, from, to, now, target, reach);
   options.push(...uva.options.map(withTotal).filter(worthIt).slice(0, MAX_BUS_OPTIONS));
 
   const cat = await catPromise;
